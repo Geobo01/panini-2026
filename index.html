@@ -74,19 +74,38 @@
             </div>
         </section>
 
+        <!-- SECTION 3 : ÉCHANGES -->
         <section id="echanges">
             <h2>Nouvel Échange</h2>
             <div class="echange-box">
                 <h3>1. Carte proposée par mon ami</h3>
-                <input type="text" id="code-ami" placeholder="Ex: FRA10">
+                <input type="text" id="code-ami" placeholder="Ex: FRA 10">
                 <button class="action" onclick="verifierCarteAmi()">Vérifier cette carte</button>
                 <div id="resultat-ami" style="margin-top: 10px; font-weight: bold;"></div>
             </div>
 
             <div class="echange-box" id="zone-don" style="display: none;">
                 <h3>2. Carte que je lui donne</h3>
-                <p>Choisis un de tes doubles :</p>
-                <select id="select-mes-doubles"></select>
+                
+                <!-- Zone des filtres de tri et recherche -->
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; background: #f0f4f8; padding: 12px; border-radius: 6px; border: 1px solid #ccd7e3;">
+                    <input type="text" id="recherche-don-code" placeholder="🔍 Recherche rapide (Ex: BEL 12)" oninput="filtrerEtTrierMesDoubles()" style="width: 100%; box-sizing: border-box; padding: 8px;">
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <select id="filtre-don-equipe" onchange="filtrerEtTrierMesDoubles()" style="flex: 1; padding: 8px; border-radius: 4px;">
+                            <!-- Rempli automatiquement en JS -->
+                        </select>
+                        <select id="tri-don" onchange="filtrerEtTrierMesDoubles()" style="flex: 1; padding: 8px; border-radius: 4px;">
+                            <option value="album">📘 Ordre de l'album</option>
+                            <option value="quantite">🔥 Plus gros stock de doubles</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p>Choisis la carte à échanger :</p>
+                <!-- On force une taille (size="5") pour transformer le menu en liste scannable -->
+                <select id="select-mes-doubles" size="5" style="width: 100%; padding: 5px; font-family: monospace; border-radius: 4px; border: 1px solid #ccc;"></select>
+                
                 <button class="action" style="margin-top: 15px;" onclick="validerEchange()">🤝 Valider l'échange</button>
             </div>
             <div id="message-echange"></div>

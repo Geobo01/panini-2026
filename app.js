@@ -67,17 +67,21 @@ function annulerAjout() {
 }
 
 // --- PARTIE INVENTAIRE & STATS ---
+// MODIFICATION : On alimente les deux sélecteurs d'équipes au chargement
 function genererFiltresEquipes() {
-    let select = document.getElementById('filtre-equipe');
-    if (!select) return;
+    let selectInv = document.getElementById('filtre-equipe');
+    let selectDon = document.getElementById('filtre-don-equipe');
+    if (!selectInv) return;
     
     let equipes = [...new Set(Object.values(albumPanini).map(c => c.equipe))];
-    let htmlBuffer = '<option value="Toutes">Toutes les équipes</option>';
     
+    let htmlBuffer = '<option value="Toutes">Toutes les équipes</option>';
     equipes.forEach(eq => {
         htmlBuffer += `<option value="${eq}">${eq}</option>`;
     });
-    select.innerHTML = htmlBuffer;
+    
+    selectInv.innerHTML = htmlBuffer;
+    if (selectDon) selectDon.innerHTML = htmlBuffer; // Ajout pour l'onglet échange
 }
 
 function modifierInventaire(code, delta) {
@@ -193,28 +197,80 @@ function verifierCarteAmi() {
     }
 }
 
+// MODIFICATION : Initialisation propre à l'ouverture de l'étape 2
 function preparerMesDoubles() {
     document.getElementById('zone-don').style.display = "block";
+    
+    // On réinitialise les filtres à l'état neutre à chaque nouvelle recherche d'ami
+    document.getElementById('recherche-don-code').value = "";
+    document.getElementById('filtre-don-equipe').value = "Toutes";
+    document.getElementById('tri-don').value = "album";
+    
+    filtrerEtTrierMesDoubles();
+}
+
+// NOUVELLE FONCTION : Gestion croisée du tri, des filtres et de la recherche
+function filtrerEtTrierMesDoubles() {
     let select = document.getElementById('select-mes-doubles');
     if (!select) return;
-    
-    let htmlBuffer = "";
-    let aDesDoubles = false;
 
-    for (let code in monInventaire) {
-        if (monInventaire[code] > 1) {
-            aDesDoubles = true;
-            htmlBuffer += `<option value="${code}">${code} (${albumPanini[code].nom}) - Dispo: ${monInventaire[code] - 1}</option>`;
+    // Capture des critères de l'utilisateur
+    let saisie = document.getElementById('recherche-don-code').value.trim().toUpperCase().replace(/\s+/g, '');
+    let filtreEquipe = document.getElementById('filtre-don-equipe').value;
+    let optionTri = document.getElementById('tri-don').value;
+
+    let listeFiltree = [];
+
+    // 1. Filtrage (Boucle calquée sur l'ordre officiel du livre)
+    for (let code in albumPanini) {
+        let qte = monInventaire[code] || 0;
+        
+        if (qte > 1) { // On ne retient que les cartes en double
+            let carte = albumPanini[code];
+
+            // Filtre A : Recherche par texte/code
+            if (saisie && !code.includes(saisie)) continue;
+
+            // Filtre B : Sélection par équipe
+            if (filtreEquipe !== "Toutes" && carte.equipe !== filtreEquipe) continue;
+
+            // La carte passe les filtres, on l'ajoute à notre tableau temporaire
+            listeFiltree.push({
+                code: code,
+                nom: carte.nom,
+                equipe: carte.equipe,
+                doublesDispos: qte - 1
+            });
         }
     }
 
-    if (!aDesDoubles) {
-        select.innerHTML = `<option value="">Tu n'as aucun double à échanger !</option>`;
-        document.querySelector('#zone-don button').disabled = true;
-    } else {
-        select.innerHTML = htmlBuffer;
-        document.querySelector('#zone-don button').disabled = false;
+    // 2. Application du Tri
+    if (optionTri === "quantite") {
+        // Tri décroissant : On pousse en premier ceux qui ont le plus grand nombre de doubles dispo
+        listeFiltree.sort((a, b) => b.doublesDispos - a.doublesDispos);
     }
+    // Si l'option est "album", pas besoin de trier : notre boucle "for (let code in albumPanini)" l'a déjà fait nativement
+
+    // 3. Rendu visuel dans le sélecteur
+    let htmlBuffer = "";
+    if (listeFiltree.length === 0) {
+        select.innerHTML = `<option value="" disabled>Aucun double ne correspond.</option>`;
+        document.querySelector('#zone-don button').disabled = true;
+        return;
+    }
+
+    listeFiltree.forEach((carte, index) => {
+        // Le '[Dispo: X]' indique clairement combien de fois on peut échanger cette carte
+        let optionText = `${carte.code} - ${carte.nom} (${carte.equipe}) [Dispo: ${carte.doublesDispos}]`;
+        
+        // Par confort, on pré-sélectionne le premier élément de la liste
+        let selected = index === 0 ? "selected" : "";
+        
+        htmlBuffer += `<option value="${carte.code}" ${selected}>${optionText}</option>`;
+    });
+
+    select.innerHTML = htmlBuffer;
+    document.querySelector('#zone-don button').disabled = false;
 }
 
 function validerEchange() {
